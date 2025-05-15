@@ -98,8 +98,7 @@ hdfs dfs -ls /datasets/nasa
 ### 4.6 Executar o job MapReduce (WordCount)
 
 ```bash
-export JAR=$(hadoop classpath | tr ':' '
-' | grep hadoop-mapreduce-examples | head -n1)
+export JAR=$(hadoop classpath | tr ':' ' ' | grep hadoop-mapreduce-examples | head -n1)
 hadoop jar "$JAR" wordcount       /datasets/nasa /output/nasa_wc
 ```
 

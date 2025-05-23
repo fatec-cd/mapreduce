@@ -1,162 +1,133 @@
 
-# Roteiro Prático: Aprendendo **MapReduce** com Containers
+# Roteiro Prático – Hadoop MapReduce no *Play With Docker* 
 
-> **Tempo estimado:** 2 – 3 h de atividade prática  
-
----
-
-## 1. Visão geral
-
-Neste roteiro você aprenderá a:
-
-1. **Criar** um cluster Hadoop de nó único dentro de um contêiner Docker **sem instalar nada localmente**.  
-2. **Executar** um job MapReduce de _WordCount_ sobre um dataset público (logs HTTP da NASA – agosto/1995).  
-3. **Interpretar** resultados e experimentar variações.
-
-Toda a prática ocorre no navegador utilizando o serviço gratuito **Play with Docker** (PWD).
+> **Objetivo**  
+> Exercitar, em um ambiente 100 % on‑line, os conceitos de **Docker & Containers**, **Hadoop** e o paradigma **Map Reduce** usando textos públicos do *Projeto Gutenberg*.
 
 ---
 
-## 2. Pré‑requisitos
+## Visão Geral
 
-| Recurso | Detalhes |
-|---------|----------|
-| Navegador | Chrome, Edge ou Firefox recente |
-| Conta GitHub **ou** Docker Hub | Para autenticar‑se no PWD |
-| Conhecimentos básicos | Terminal Linux e comandos Docker; noções de Big Data |
+| Tópico | O que você fará |
+|--------|-----------------|
+| 1 | Criar (ou baixar) uma **imagem customizada** derivada de `apache/hadoop:3.3.6` que mantém os serviços Hadoop em execução. |
+| 2 | Executar o contêiner no **Play With Docker** (PWD) e expor as interfaces Web. |
+| 3 | Baixar livros do *Projeto Gutenberg*, carregá‑los no HDFS e rodar o job *wordcount*. |
+| 4 | Registrar **pontos de verificação** e gerar **evidência final** do resultado obtido. |
 
----
-
-## 3. Ambiente de trabalho (Play with Docker)
-
-1. Acesse <https://labs.play-with-docker.com> e clique em **_Start_**.  
-2. Faça login com sua conta GitHub/Docker Hub.  
-3. Dentro do painel, clique em **_Add New Instance_** para obter um terminal Alpine Linux com Docker & Docker‑Compose já instalados (a sessão dura 4 h).  
-
-> 💡 **Dica:** use o botão **_Share_** para salvar a URL da sessão caso precise reconectar.
+> **Tempo estimado:** 45 minutos  
+> **Pré‑requisitos dos alunos:** Conta no Docker Hub e conhecimento teórico prévio sobre Docker e Hadoop.
 
 ---
 
-## 4. Passo a passo
+## 1  Preparar o ambiente no Play With Docker
 
-### 4.1 Preparar o diretório de trabalho
+1. Acesse <https://labs.play-with-docker.com> e clique em **Login** (use suas credenciais do Docker Hub).  
+2. Clique em **Start** para iniciar uma sessão de 4 horas. Um nó com Alpine Linux será criado.
 
-```bash
-mkdir ~/hadoop && cd ~/hadoop
-```
-
-### 4.2 Clonar o repositório com o _docker‑compose_
-
-```bash
-git clone https://github.com/big-data-europe/docker-hadoop.git
-cd docker-hadoop
-```
-
-### 4.3 Subir o cluster Hadoop (nó único)
-
-```bash
-docker compose up -d        # ~1 min
-```
-
-*Contêineres criados*  
-- **namenode** (HDFS + YARN ResourceManager)  
-- **datanode**  
-- **resourcemanager & nodemanager**  
-- **historyserver**
-
-Verifique:
-
-```bash
-docker ps --format "table {{.Names}}	{{.Status}}"
-```
-
-### 4.4 Entrar no contêiner **namenode**
-
-```bash
-docker exec -it namenode bash
-```
-
-O prompt mudará para `root@namenode:/#`.
-
-### 4.5 Baixar e carregar o dataset público
-
-```bash
-# ainda dentro do contêiner
-cd /tmp
-curl -O https://ita.ee.lbl.gov/traces/NASA_access_log_Aug95.gz
-gunzip NASA_access_log_Aug95.gz      # ~21 MB → 167 MB
-hdfs dfs -mkdir -p /datasets/nasa
-hdfs dfs -put NASA_access_log_Aug95 /datasets/nasa/
-```
-
-Confirme:
-
-```bash
-hdfs dfs -ls /datasets/nasa
-```
-
-### 4.6 Executar o job MapReduce (WordCount)
-
-```bash
-export JAR=$(hadoop classpath | tr ':' ' ' | grep hadoop-mapreduce-examples | head -n1)
-hadoop jar "$JAR" wordcount       /datasets/nasa /output/nasa_wc
-```
-
-O YARN exibirá progresso de **Map → Shuffle → Reduce**. Ao final:
-
-```
-INFO mapreduce.Job:  map 100% reduce 100%
-INFO mapreduce.Job: Job job_... completed successfully
-```
-
-### 4.7 Visualizar resultados
-
-```bash
-hdfs dfs -cat /output/nasa_wc/part-r-00000 | head -n 20
-```
-
-Saída esperada (valores aproximados):
-
-```
-GET                 1,563,000
-HTTP/1.0            1,560,000
-200                 1,290,000
-/index.html         245,000
-/images/ksc.gif      97,000
-...
-```
-
-> 🔍 **Interpretação:** a contagem evidencia que a maior parte das linhas começa com a operação `GET`. URLs e códigos de status aparecem como tokens frequentes.
+### ✅ Checkpoint 1  
+Execute `docker version`. A saída deve mostrar *Client* e *Server*.
 
 ---
 
-## 5. Resultados esperados
+## 2  Obter a imagem customizada
 
-| Etapa | Indicador de sucesso |
-|-------|----------------------|
-| 4.3   | `docker ps` mostra 5 contêineres `Up` |
-| 4.5   | `hdfs dfs -ls /datasets/nasa` lista o arquivo de ~167 MB |
-| 4.6   | Mensagem `completed successfully` no final do job |
-| 4.7   | Arquivo `part-r-00000` com pares **palavra ↔ frequência** |
-
----
-
-
-
-## 6. Encerramento & limpeza
 
 ```bash
-# no host PWD
-docker compose down
-exit    # sai do contêiner
+docker pull infrabigdata/hadoop-infra:3.3.6
 ```
 
-Ao finalizar, feche a aba ou espere a sessão expirar.
+## 3  Executar o contêiner Hadoop
+
+```bash
+docker run -d --name hadoop -p 9870:9870 -p 8088:8088 infrabigdata/hadoop-infra:3.3.6
+```
+
+### ✅ Checkpoint 3  
+`docker ps` deve mostrar o contêiner **Up**.  
+Acesse:
+
+- **NameNode UI:** `http://IP_DO_PWD:9870`
+- **ResourceManager UI:** `http://IP_DO_PWD:8088`
 
 ---
 
-## 7. Referências
+## 4  Baixar o dataset do Projeto Gutenberg
 
-* Play with Docker – laboratório online (Docker Inc.)  
-* Repositório **docker-hadoop** – Big Data Europe  
-* Dataset **NASA HTTP logs 1995** – Internet Traffic Archive  
+1. Entre no contêiner:
+
+    ```bash
+    docker exec -it hadoop bash
+    ```
+
+2. Crie uma pasta e faça download de dois livros:
+
+    ```bash
+    mkdir -p /data/gutenberg && cd /data/gutenberg
+    wget https://www.gutenberg.org/cache/epub/1342/pg1342.txt  -O pride_prejudice.txt
+    wget https://www.gutenberg.org/cache/epub/2600/pg2600.txt  -O war_peace.txt
+    ```
+
+### ✅ Checkpoint 4  
+`ls -lh /data/gutenberg` deve mostrar os dois arquivos.
+
+---
+
+## 5  Carregar arquivos no HDFS
+
+```bash
+hdfs dfs -mkdir -p /user/root/gutenberg
+hdfs dfs -put /data/gutenberg/*.txt /user/root/gutenberg/
+hdfs dfs -ls /user/root/gutenberg
+```
+
+### ✅ Checkpoint 5  
+Os arquivos aparecem listados no HDFS.
+
+---
+
+## 6  Executar o job *wordcount* (Map Reduce)
+
+```bash
+hadoop jar $HADOOP_HOME/share/hadoop/mapreduce/hadoop-mapreduce-examples-3.3.6.jar   wordcount /user/root/gutenberg /user/root/gutenberg_out
+```
+
+*Monitore o job na UI do ResourceManager (porta 8088).*
+
+### ✅ Checkpoint 6  
+O job finaliza com **SUCCEEDED**.
+
+---
+
+## 7  Verificar resultados e gerar evidência
+
+1. Mostre as primeiras 20 palavrasdo resultado do processamento
+
+    ```bash
+    hdfs dfs -cat /user/root/gutenberg_out/part-r-00000 | head -20
+    ```
+
+2. Salve a saída em um arquivo local (opcional):
+
+    ```bash
+    hdfs dfs -cat /user/root/gutenberg_out/part-r-00000  | head -20 > /data/wordcount_result.txt
+    ```
+
+### 🎯 Evidência final  
+Tire um **print** ou **copie** o conteúdo das 20 linhas 
+
+---
+
+## 8  Encerrar
+
+```bash
+docker stop hadoop && docker rm hadoop
+```
+
+Ou simplesmente encerre a sessão do PWD; tudo será descartado.
+
+---
+
+### 🎉 Parabéns!
+
+Se você completou todos os checkpoints e apresentou a evidência final, concluiu com sucesso a atividade prática de Docker + Hadoop MapReduce no Play With Docker.

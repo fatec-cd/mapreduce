@@ -101,7 +101,7 @@ O job finaliza com **SUCCEEDED**.
 
 ## 7  Verificar resultados e gerar evidência
 
-1. Mostre as primeiras 20 palavrasdo resultado do processamento
+1. Mostre as primeiras 20 palavras do resultado do processamento
 
     ```bash
     hdfs dfs -cat /user/root/gutenberg_out/part-r-00000 | head -20
